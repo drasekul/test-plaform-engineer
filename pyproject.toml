@@ -15,4 +15,6 @@ addopts = "--cov=src --cov-report=term-missing"
 [tool.ruff]
 # Ruff reemplaza flake8 + isort con mejor rendimiento
 line-length = 88
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I"]
