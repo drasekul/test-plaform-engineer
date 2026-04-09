@@ -262,6 +262,7 @@ Recursos gestionados:
 | `min_instances` | `0` | Cold start aceptable; reduce costos en inactividad |
 | `max_instances` | `5` | Permite escalar ante volumen alto sin costos descontrolados |
 | `concurrency` | `80` | Default Cloud Run; maneja múltiples push simultáneos |
+| `ingress` | `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` | Solo Pub/Sub y load balancer pueden invocar el servicio; no expuesto públicamente |
 
 ### Service Accounts
 
