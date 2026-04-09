@@ -7,7 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.use_cases import ProcessSaleUseCase
+from src.application.use_cases import ProcessSaleUseCase, PublishSaleUseCase
+from src.domain.entities import Sale
 
 
 @pytest.mark.unit
@@ -75,7 +76,6 @@ class TestProcessSaleUseCase:
 
     def test_calls_repository_save_with_valid_sale(self):
         # Verificar que la persistencia se delega al puerto con una entidad Sale válida
-        from src.domain.entities import Sale
         self.use_case.execute(self._raw())
         self.mock_repository.save.assert_called_once()
         saved_sale = self.mock_repository.save.call_args[0][0]
@@ -88,3 +88,35 @@ class TestProcessSaleUseCase:
         sale = self.use_case.execute(self._raw(monthly_sales="1200"))
         assert isinstance(sale.monthly_sales, int)
         assert sale.monthly_sales == 1200
+
+
+@pytest.mark.unit
+class TestPublishSaleUseCase:
+
+    def setup_method(self):
+        self.mock_publisher = MagicMock()
+        # El publisher retorna un message_id (string) al publicar
+        self.mock_publisher.publish.return_value = "msg-id-123"
+        self.use_case = PublishSaleUseCase(publisher=self.mock_publisher)
+
+    def _make_sale(self) -> Sale:
+        return Sale(
+            sale_id="test-uuid",
+            product="Producto A",
+            region="Región 1",
+            month="Enero 2022",
+            monthly_sales=1200,
+            date=date(2022, 1, 1),
+            year=2022,
+        )
+
+    def test_returns_message_id_from_publisher(self):
+        # El message_id permite al caller loguear trazabilidad del mensaje publicado
+        result = self.use_case.execute(self._make_sale())
+        assert result == "msg-id-123"
+
+    def test_calls_publisher_with_sale_entity(self):
+        # El caso de uso delega la publicación al puerto sin conocer la implementación
+        sale = self._make_sale()
+        self.use_case.execute(sale)
+        self.mock_publisher.publish.assert_called_once_with(sale)

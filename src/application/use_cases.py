@@ -6,7 +6,7 @@ import uuid
 from datetime import date as DateType
 
 from src.domain.entities import Sale
-from src.domain.ports import DataRepository
+from src.domain.ports import DataRepository, MessagePublisher
 
 # Mapeo de meses en español a su número.
 # Se define aquí (no via locale) para evitar dependencia del sistema operativo
@@ -107,3 +107,19 @@ class ProcessSaleUseCase:
         # Persistir via el puerto — no se asume qué sistema de almacenamiento hay detrás
         self._repository.save(sale)
         return sale
+
+
+class PublishSaleUseCase:
+    """
+    Caso de uso de publicación: serializa una entidad Sale y la publica
+    al bus de mensajes via el puerto MessagePublisher.
+    Retorna el message_id para que el caller (publisher.py) pueda loguearlo.
+    """
+
+    def __init__(self, publisher: MessagePublisher) -> None:
+        self._publisher = publisher
+
+    def execute(self, sale: Sale) -> str:
+        # Delega la publicación al puerto; no conoce si es Pub/Sub, SQS u otro broker
+        message_id = self._publisher.publish(sale)
+        return message_id
