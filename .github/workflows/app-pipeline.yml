@@ -1,0 +1,84 @@
+# .github/workflows/app-pipeline.yml
+# Pipeline de despliegue a producción.
+# Se dispara en push a main (merge desde develop o hotfix).
+# Flujo: test → build + push a Artifact Registry → deploy a Cloud Run.
+name: App Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Re-ejecutar tests antes de cualquier build/deploy para garantizar
+      # que el código que llega a main está validado
+      - name: Ejecutar tests
+        run: pytest -m "unit or acceptance" -v
+        env:
+          GCP_PROJECT_ID: "test-project"
+          BQ_DATASET: "test-dataset"
+          BQ_TABLE: "test-table"
+
+  build-and-push:
+    name: Build y Push a Artifact Registry
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Autenticación con GCP usando la SA key almacenada en GitHub Secrets
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Configurar Docker para usar Artifact Registry como registry
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+
+      # Tag con el SHA del commit para trazabilidad: saber exactamente qué commit está en producción
+      - name: Build y Push imagen Docker
+        run: |
+          IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.AR_REPO }}/app:${{ github.sha }}"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+  deploy:
+    name: Deploy a Cloud Run
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Desplegar la nueva imagen al servicio Cloud Run existente.
+      # gcloud run deploy actualiza el servicio sin downtime (rolling update).
+      - name: Deploy a Cloud Run
+        run: |
+          IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.AR_REPO }}/app:${{ github.sha }}"
+          gcloud run deploy ${{ secrets.CLOUDRUN_SERVICE_NAME }} \
+            --image $IMAGE \
+            --region ${{ secrets.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }}
