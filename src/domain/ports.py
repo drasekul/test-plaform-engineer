@@ -4,6 +4,7 @@
 # El uso de ABCs garantiza que la capa de aplicación dependa de abstracciones,
 # no de implementaciones concretas (principio D de SOLID).
 from abc import ABC, abstractmethod
+
 from src.domain.entities import Sale
 
 

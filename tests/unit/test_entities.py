@@ -1,8 +1,10 @@
 # tests/unit/test_entities.py
 # Tests de la entidad central del dominio.
 # Verifican que la dataclass se construye correctamente y mantiene sus invariantes.
-import pytest
 from datetime import date
+
+import pytest
+
 from src.domain.entities import Sale
 
 

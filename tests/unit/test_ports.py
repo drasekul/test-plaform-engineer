@@ -3,7 +3,8 @@
 # Verifican que los contratos abstractos se hacen cumplir en tiempo de instanciación,
 # garantizando que ningún adaptador pueda omitir métodos requeridos.
 import pytest
-from src.domain.ports import MessagePublisher, DataRepository
+
+from src.domain.ports import DataRepository, MessagePublisher
 
 
 @pytest.mark.unit
