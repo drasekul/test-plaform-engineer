@@ -1,5 +1,8 @@
 # Dependencias exclusivas de desarrollo y testing.
 # Se separan de requirements.txt para no incluirlas en la imagen Docker de producción.
+# Se incluye requirements.txt para poder instalar el entorno completo con un solo comando:
+# pip install -r requirements-dev.txt
+-r requirements.txt
 pytest==8.3.4
 pytest-mock==3.14.0
 pytest-cov==6.0.0
