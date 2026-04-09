@@ -1,0 +1,18 @@
+# pyproject.toml centraliza la configuración de herramientas del proyecto.
+# Se usa en lugar de múltiples archivos de config (setup.cfg, .flake8, etc.)
+
+[tool.pytest.ini_options]
+# testpaths limita pytest a la carpeta tests para evitar descubrir archivos no deseados
+testpaths = ["tests"]
+markers = [
+    # Separar unit de acceptance permite ejecutar solo un subset en CI según el contexto
+    "unit: tests unitarios sin dependencias externas (rápidos, sin GCP)",
+    "acceptance: tests de aceptación del flujo completo (con mocks de integración)",
+]
+# --cov genera reporte de cobertura automáticamente en cada ejecución
+addopts = "--cov=src --cov-report=term-missing"
+
+[tool.ruff]
+# Ruff reemplaza flake8 + isort con mejor rendimiento
+line-length = 88
+select = ["E", "F", "W", "I"]
