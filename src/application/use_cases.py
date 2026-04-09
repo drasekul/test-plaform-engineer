@@ -6,10 +6,11 @@ import uuid
 from datetime import date as DateType
 
 from src.domain.entities import Sale
-from src.domain.ports import DataRepository, MessagePublisher
+from src.domain.ports import DataRepository
 
 # Mapeo de meses en español a su número.
-# Se define aquí (no via locale) para evitar dependencia del sistema operativo del contenedor.
+# Se define aquí (no via locale) para evitar dependencia del sistema operativo
+# del contenedor.
 _MONTH_MAP: dict[str, int] = {
     "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4,
     "Mayo": 5, "Junio": 6, "Julio": 7, "Agosto": 8,
@@ -35,11 +36,22 @@ def _parse_month_to_date(month_str: str) -> DateType:
     """
     Convierte 'Enero 2022' a date(2022, 1, 1).
     Se usa el primer día del mes como convención para representar el período mensual.
-    Esto permite usar el campo como DATE en BigQuery para filtros y particionado eficientes.
+    Esto permite usar el campo como DATE en BigQuery para filtros y particionado
+    eficientes.
+    Se lanza ValueError (no KeyError) para que FastAPI retorne 422 en lugar de 500.
     """
     parts = month_str.strip().split()
+    if len(parts) != 2:  # noqa: PLR2004
+        raise ValueError(
+            f"Formato de mes inválido: '{month_str}'. Se esperaba 'Mes YYYY'"
+        )
     month_name, year = parts[0], int(parts[1])
-    month_num = _MONTH_MAP[month_name]
+    month_num = _MONTH_MAP.get(month_name)
+    if month_num is None:
+        raise ValueError(
+            f"Nombre de mes desconocido: '{month_name}'. "
+            f"Meses válidos: {list(_MONTH_MAP)}"
+        )
     return DateType(year, month_num, 1)
 
 
@@ -72,7 +84,8 @@ class ProcessSaleUseCase:
         monthly_sales = int(raw_data["monthly_sales"])
         if monthly_sales <= 0:
             raise ValueError(
-                f"monthly_sales debe ser un entero positivo, se recibió: {monthly_sales}"
+                f"monthly_sales debe ser un entero positivo, "
+                f"se recibió: {monthly_sales}"
             )
 
         # 4. Parsear el mes a un objeto date para tipado correcto en BigQuery

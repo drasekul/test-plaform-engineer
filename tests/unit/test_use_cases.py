@@ -2,9 +2,11 @@
 # Tests de los casos de uso. Usan mocks para los puertos, garantizando que
 # no hay dependencias de GCP. Cada test verifica una transformación específica.
 import uuid
-import pytest
 from datetime import date
 from unittest.mock import MagicMock
+
+import pytest
+
 from src.application.use_cases import ProcessSaleUseCase
 
 
@@ -48,7 +50,9 @@ class TestProcessSaleUseCase:
     def test_strips_whitespace_from_strings(self):
         # Espacios invisibles pueden causar duplicados o fallos en queries BQ.
         # Se eliminan preventivamente en todos los campos string.
-        sale = self.use_case.execute(self._raw(product="  Producto A  ", region="  Región 1  "))
+        sale = self.use_case.execute(
+            self._raw(product="  Producto A  ", region="  Región 1  ")
+        )
         assert sale.product == "Producto A"
         assert sale.region == "Región 1"
 
@@ -69,10 +73,15 @@ class TestProcessSaleUseCase:
         with pytest.raises(ValueError, match="monthly_sales"):
             self.use_case.execute(self._raw(monthly_sales="-500"))
 
-    def test_calls_repository_save_exactly_once(self):
-        # Verificar que la persistencia se delega correctamente al puerto
+    def test_calls_repository_save_with_valid_sale(self):
+        # Verificar que la persistencia se delega al puerto con una entidad Sale válida
+        from src.domain.entities import Sale
         self.use_case.execute(self._raw())
         self.mock_repository.save.assert_called_once()
+        saved_sale = self.mock_repository.save.call_args[0][0]
+        assert isinstance(saved_sale, Sale)
+        assert saved_sale.monthly_sales == 1200
+        assert saved_sale.product == "Producto A"
 
     def test_converts_string_monthly_sales_to_int(self):
         # Los valores del CSV llegan como strings; deben convertirse a int
