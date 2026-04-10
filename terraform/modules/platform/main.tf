@@ -126,9 +126,16 @@ resource "google_cloud_run_v2_service" "subscriber" {
       }
     }
   }
+
+  # Terraform gestiona la estructura del servicio (scaling, IAM, ingress, variables de entorno).
+  # La imagen es gestionada por app-pipeline vía gcloud run deploy en cada deploy de código.
+  # ignore_changes evita que Terraform revierta la imagen en cada apply de infraestructura.
+  lifecycle {
+    ignore_changes = [template[0].containers[0].image]
+  }
 }
 
-# ─── BigQuery ─────────────────────────────────────────────────────────────────
+# ─── BigQuery ──────────────────────────────────────────────────────────────────
 resource "google_bigquery_dataset" "sales_dataset" {
   dataset_id  = var.bq_dataset
   project     = var.project_id
@@ -144,14 +151,14 @@ resource "google_bigquery_table" "sales_table" {
 
   # Schema alineado con la entidad Sale y el schema.json propuesto
   schema = jsonencode([
-    { name = "sale_id",       type = "STRING",    mode = "REQUIRED", description = "UUID v4 único por registro" },
-    { name = "product",       type = "STRING",    mode = "REQUIRED", description = "Nombre del producto normalizado" },
-    { name = "region",        type = "STRING",    mode = "REQUIRED", description = "Región con encoding UTF-8 correcto" },
-    { name = "month",         type = "STRING",    mode = "REQUIRED", description = "Período mensual en texto (ej. Enero 2022)" },
-    { name = "monthly_sales", type = "INTEGER",   mode = "REQUIRED", description = "Total de ventas del mes" },
-    { name = "date",          type = "DATE",      mode = "REQUIRED", description = "Primer día del mes para queries temporales" },
-    { name = "year",          type = "INTEGER",   mode = "REQUIRED", description = "Año para facilitar particionado y queries" },
-    { name = "ingested_at",   type = "TIMESTAMP", mode = "REQUIRED", description = "Timestamp de ingesta en el pipeline" },
+    { name = "sale_id", type = "STRING", mode = "REQUIRED", description = "UUID v4 único por registro" },
+    { name = "product", type = "STRING", mode = "REQUIRED", description = "Nombre del producto normalizado" },
+    { name = "region", type = "STRING", mode = "REQUIRED", description = "Región con encoding UTF-8 correcto" },
+    { name = "month", type = "STRING", mode = "REQUIRED", description = "Período mensual en texto (ej. Enero 2022)" },
+    { name = "monthly_sales", type = "INTEGER", mode = "REQUIRED", description = "Total de ventas del mes" },
+    { name = "date", type = "DATE", mode = "REQUIRED", description = "Primer día del mes para queries temporales" },
+    { name = "year", type = "INTEGER", mode = "REQUIRED", description = "Año para facilitar particionado y queries" },
+    { name = "ingested_at", type = "TIMESTAMP", mode = "REQUIRED", description = "Timestamp de ingesta en el pipeline" },
   ])
 
   depends_on = [google_bigquery_dataset.sales_dataset]
