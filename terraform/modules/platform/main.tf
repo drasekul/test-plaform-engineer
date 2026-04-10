@@ -103,10 +103,10 @@ resource "google_cloud_run_v2_service" "subscriber" {
 
       resources {
         limits = {
-          # 1 CPU y 256Mi son suficientes para procesar mensajes individuales de Pub/Sub.
-          # FastAPI + GCP SDKs requieren ~100Mi en estado estable.
+          # Cloud Run requiere mínimo 512Mi cuando la CPU no está throttled (always allocated).
+          # FastAPI + GCP SDKs requieren ~100Mi en estado estable; 512Mi es suficiente.
           cpu    = "1"
-          memory = "256Mi"
+          memory = "512Mi"
         }
       }
 
