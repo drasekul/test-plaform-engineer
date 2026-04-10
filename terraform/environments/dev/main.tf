@@ -36,14 +36,6 @@ variable "image_url" {
   default     = "southamerica-west1-docker.pkg.dev/test-fif-platform-engineer/docker-fif-sales/app:latest"
 }
 
-# Import de la SA preexistente 'cloudrun-sa' al estado de Terraform.
-# Los import blocks solo están permitidos en el root module (no en módulos hijos).
-# Es idempotente: si la SA ya está en el estado, no hace nada.
-import {
-  id = "projects/test-fif-platform-engineer/serviceAccounts/cloudrun-sa@test-fif-platform-engineer.iam.gserviceaccount.com"
-  to = module.platform.google_service_account.cloudrun_sa
-}
-
 module "platform" {
   source = "../../modules/platform"
 
