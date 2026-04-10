@@ -11,14 +11,6 @@ terraform {
   }
 }
 
-# Import de la SA preexistente 'cloudrun-sa' creada manualmente.
-# Se usa import block (Terraform >= 1.5) para que Terraform gestione la SA existente
-# sin recrearla, cumpliendo el principio de mínimo privilegio desde la cuenta maestra.
-import {
-  id = "projects/test-fif-platform-engineer/serviceAccounts/cloudrun-sa@test-fif-platform-engineer.iam.gserviceaccount.com"
-  to = google_service_account.cloudrun_sa
-}
-
 # ─── Service Account de Ejecución (Cloud Run Runtime) ───────────────────────
 # SA separada de la SA maestra (Terraform) para aplicar el principio de mínimo privilegio.
 # Solo tiene los permisos estrictamente necesarios para operar en runtime.
