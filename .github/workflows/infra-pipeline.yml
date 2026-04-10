@@ -35,6 +35,12 @@ jobs:
         run: terraform init
         working-directory: terraform/environments/dev
 
+      - name: Limpiar SA antigua del estado de Terraform
+        # Elimina fif-sales-subscriber-sa del estado sin borrarla de GCP.
+        # Necesario para que el import block pueda traer cloudrun-sa al estado limpiamente.
+        run: terraform state rm module.platform.google_service_account.cloudrun_sa || true
+        working-directory: terraform/environments/dev
+
       - name: Terraform Plan
         run: |
           terraform plan \
@@ -66,6 +72,12 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: terraform/environments/dev
+
+      - name: Limpiar SA antigua del estado de Terraform
+        # Elimina fif-sales-subscriber-sa del estado sin borrarla de GCP.
+        # Necesario para que el import block pueda traer cloudrun-sa al estado limpiamente.
+        run: terraform state rm module.platform.google_service_account.cloudrun_sa || true
         working-directory: terraform/environments/dev
 
       - name: Terraform Apply
