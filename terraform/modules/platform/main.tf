@@ -11,14 +11,22 @@ terraform {
   }
 }
 
+# Import de la SA preexistente 'cloudrun-sa' creada manualmente.
+# Se usa import block (Terraform >= 1.5) para que Terraform gestione la SA existente
+# sin recrearla, cumpliendo el principio de mínimo privilegio desde la cuenta maestra.
+import {
+  id = "projects/test-fif-platform-engineer/serviceAccounts/cloudrun-sa@test-fif-platform-engineer.iam.gserviceaccount.com"
+  to = google_service_account.cloudrun_sa
+}
+
 # ─── Service Account de Ejecución (Cloud Run Runtime) ───────────────────────
 # SA separada de la SA maestra (Terraform) para aplicar el principio de mínimo privilegio.
 # Solo tiene los permisos estrictamente necesarios para operar en runtime.
 resource "google_service_account" "cloudrun_sa" {
-  account_id   = "${var.service_name}-sa"
+  account_id   = "cloudrun-sa"
   display_name = "Cloud Run Runtime SA — ${var.service_name}"
   project      = var.project_id
-  description  = "SA de ejecución para el suscriptor de Pub/Sub. Solo pubsub.subscriber y bigquery.dataEditor."
+  description  = "SA de ejecución para el suscriptor de Pub/Sub. Solo pubsub.subscriber, bigquery.dataEditor y artifactregistry.reader."
 }
 
 # Permiso para leer mensajes de Pub/Sub (consumir la suscripción)
@@ -32,6 +40,13 @@ resource "google_project_iam_member" "cloudrun_pubsub_subscriber" {
 resource "google_project_iam_member" "cloudrun_bq_editor" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+}
+
+# Permiso para descargar imágenes Docker desde Artifact Registry al arrancar Cloud Run
+resource "google_project_iam_member" "cloudrun_ar_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
   member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
 }
 
