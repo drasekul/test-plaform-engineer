@@ -27,13 +27,13 @@ variable "project_id" {
 variable "region" {
   description = "Región GCP"
   type        = string
-  default     = "REGION_PLACEHOLDER"  # Reemplazar con la región real (ej. us-central1)
+  default     = "southamerica-west1"
 }
 
 variable "image_url" {
   description = "URL de la imagen Docker en Artifact Registry con tag del commit"
   type        = string
-  default     = "REGION_PLACEHOLDER-docker.pkg.dev/test-fif-platform-engineer/AR_REPO_PLACEHOLDER/app:latest"
+  default     = "southamerica-west1-docker.pkg.dev/test-fif-platform-engineer/docker-fif-sales/app:latest"
 }
 
 module "platform" {
@@ -49,7 +49,7 @@ module "platform" {
 }
 
 # Outputs del entorno para referencia en CI/CD y documentación
-output "cloud_run_url"      { value = module.platform.cloud_run_url }
-output "pubsub_topic_id"    { value = module.platform.pubsub_topic_id }
-output "bq_table_id"        { value = module.platform.bq_table_id }
-output "cloudrun_sa_email"  { value = module.platform.cloudrun_sa_email }
+output "cloud_run_url" { value = module.platform.cloud_run_url }
+output "pubsub_topic_id" { value = module.platform.pubsub_topic_id }
+output "bq_table_id" { value = module.platform.bq_table_id }
+output "cloudrun_sa_email" { value = module.platform.cloudrun_sa_email }

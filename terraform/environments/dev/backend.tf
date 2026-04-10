@@ -5,7 +5,7 @@
 # (no puede ser gestionado por Terraform porque se necesita para Terraform).
 terraform {
   backend "gcs" {
-    bucket = "tf-state-fif-prueba"  # Reemplazar por el nombre real del bucket GCS
+    bucket = "tf-state-fif-test-ds" # Reemplazar por el nombre real del bucket GCS
     prefix = "terraform/state/dev"
   }
 }
