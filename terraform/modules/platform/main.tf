@@ -15,10 +15,10 @@ terraform {
 # SA separada de la SA maestra (Terraform) para aplicar el principio de mínimo privilegio.
 # Solo tiene los permisos estrictamente necesarios para operar en runtime.
 resource "google_service_account" "cloudrun_sa" {
-  account_id   = "${var.service_name}-sa"
+  account_id   = "cloudrun-sa"
   display_name = "Cloud Run Runtime SA — ${var.service_name}"
   project      = var.project_id
-  description  = "SA de ejecución para el suscriptor de Pub/Sub. Solo pubsub.subscriber y bigquery.dataEditor."
+  description  = "SA de ejecución para el suscriptor de Pub/Sub. Solo pubsub.subscriber, bigquery.dataEditor y artifactregistry.reader."
 }
 
 # Permiso para leer mensajes de Pub/Sub (consumir la suscripción)
@@ -32,6 +32,13 @@ resource "google_project_iam_member" "cloudrun_pubsub_subscriber" {
 resource "google_project_iam_member" "cloudrun_bq_editor" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+}
+
+# Permiso para descargar imágenes Docker desde Artifact Registry al arrancar Cloud Run
+resource "google_project_iam_member" "cloudrun_ar_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
   member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
 }
 
@@ -96,10 +103,10 @@ resource "google_cloud_run_v2_service" "subscriber" {
 
       resources {
         limits = {
-          # 1 CPU y 256Mi son suficientes para procesar mensajes individuales de Pub/Sub.
-          # FastAPI + GCP SDKs requieren ~100Mi en estado estable.
+          # Cloud Run requiere mínimo 512Mi cuando la CPU no está throttled (always allocated).
+          # FastAPI + GCP SDKs requieren ~100Mi en estado estable; 512Mi es suficiente.
           cpu    = "1"
-          memory = "256Mi"
+          memory = "512Mi"
         }
       }
 
@@ -119,9 +126,16 @@ resource "google_cloud_run_v2_service" "subscriber" {
       }
     }
   }
+
+  # Terraform gestiona la estructura del servicio (scaling, IAM, ingress, variables de entorno).
+  # La imagen es gestionada por app-pipeline vía gcloud run deploy en cada deploy de código.
+  # ignore_changes evita que Terraform revierta la imagen en cada apply de infraestructura.
+  lifecycle {
+    ignore_changes = [template[0].containers[0].image]
+  }
 }
 
-# ─── BigQuery ─────────────────────────────────────────────────────────────────
+# ─── BigQuery ──────────────────────────────────────────────────────────────────
 resource "google_bigquery_dataset" "sales_dataset" {
   dataset_id  = var.bq_dataset
   project     = var.project_id
@@ -137,14 +151,14 @@ resource "google_bigquery_table" "sales_table" {
 
   # Schema alineado con la entidad Sale y el schema.json propuesto
   schema = jsonencode([
-    { name = "sale_id",       type = "STRING",    mode = "REQUIRED", description = "UUID v4 único por registro" },
-    { name = "product",       type = "STRING",    mode = "REQUIRED", description = "Nombre del producto normalizado" },
-    { name = "region",        type = "STRING",    mode = "REQUIRED", description = "Región con encoding UTF-8 correcto" },
-    { name = "month",         type = "STRING",    mode = "REQUIRED", description = "Período mensual en texto (ej. Enero 2022)" },
-    { name = "monthly_sales", type = "INTEGER",   mode = "REQUIRED", description = "Total de ventas del mes" },
-    { name = "date",          type = "DATE",      mode = "REQUIRED", description = "Primer día del mes para queries temporales" },
-    { name = "year",          type = "INTEGER",   mode = "REQUIRED", description = "Año para facilitar particionado y queries" },
-    { name = "ingested_at",   type = "TIMESTAMP", mode = "REQUIRED", description = "Timestamp de ingesta en el pipeline" },
+    { name = "sale_id", type = "STRING", mode = "REQUIRED", description = "UUID v4 único por registro" },
+    { name = "product", type = "STRING", mode = "REQUIRED", description = "Nombre del producto normalizado" },
+    { name = "region", type = "STRING", mode = "REQUIRED", description = "Región con encoding UTF-8 correcto" },
+    { name = "month", type = "STRING", mode = "REQUIRED", description = "Período mensual en texto (ej. Enero 2022)" },
+    { name = "monthly_sales", type = "INTEGER", mode = "REQUIRED", description = "Total de ventas del mes" },
+    { name = "date", type = "DATE", mode = "REQUIRED", description = "Primer día del mes para queries temporales" },
+    { name = "year", type = "INTEGER", mode = "REQUIRED", description = "Año para facilitar particionado y queries" },
+    { name = "ingested_at", type = "TIMESTAMP", mode = "REQUIRED", description = "Timestamp de ingesta en el pipeline" },
   ])
 
   depends_on = [google_bigquery_dataset.sales_dataset]
