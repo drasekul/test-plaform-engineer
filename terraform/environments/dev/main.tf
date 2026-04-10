@@ -31,7 +31,7 @@ variable "region" {
 }
 
 variable "image_url" {
-  description = "URL de la imagen Docker en Artifact Registry con tag del commit"
+  description = "URL de la imagen Docker. Solo se usa en la creación inicial del servicio. Los deploys posteriores actualizan la imagen vía app-pipeline (gcloud run deploy), no via Terraform."
   type        = string
   default     = "southamerica-west1-docker.pkg.dev/test-fif-platform-engineer/docker-fif-sales/app:latest"
 }
