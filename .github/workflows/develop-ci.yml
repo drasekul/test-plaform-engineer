@@ -1,0 +1,46 @@
+# .github/workflows/develop-ci.yml
+# CI en la rama develop (post-merge).
+# Propósito: validar el estado de la rama de integración después de cada merge.
+# No hace deploy: develop es la rama de integración, no de producción.
+# El build Docker sin push verifica que la imagen construye correctamente.
+name: Develop CI
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Ejecutar suite completa de tests
+        run: pytest -m "unit or acceptance" -v
+        env:
+          GCP_PROJECT_ID: "test-project"
+          BQ_DATASET: "test-dataset"
+          BQ_TABLE: "test-table"
+
+  build:
+    name: Build Docker (sin push)
+    runs-on: ubuntu-latest
+    needs: test  # Solo construir si los tests pasan
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Construir la imagen Docker para verificar que el Dockerfile es válido.
+      # No se hace push: develop no despliega a producción.
+      - name: Build Docker image
+        run: docker build -t fif-pipeline:${{ github.sha }} .

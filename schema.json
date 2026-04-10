@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SaleRecord",
+  "description": "Schema propuesto para mensajes publicados en el tópico de Pub/Sub. Define la estructura y tipos de los datos de ventas procesados por el pipeline.",
+  "type": "object",
+  "required": ["sale_id", "product", "region", "month", "monthly_sales", "date", "year"],
+  "properties": {
+    "sale_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único del registro, generado como UUID v4 en ProcessSaleUseCase"
+    },
+    "product": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nombre del producto normalizado (sin espacios extra)"
+    },
+    "region": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Región de la venta con encoding corregido (UTF-8)"
+    },
+    "month": {
+      "type": "string",
+      "pattern": "^[A-Za-záéíóúÁÉÍÓÚ]+ \\d{4}$",
+      "description": "Período mensual en texto, ej: 'Enero 2022'"
+    },
+    "monthly_sales": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total de ventas del mes, validado como entero positivo"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Primer día del mes en formato YYYY-MM-DD, para uso como DATE en BigQuery"
+    },
+    "year": {
+      "type": "integer",
+      "minimum": 2000,
+      "description": "Año extraído de date para facilitar queries y particionado en BigQuery"
+    }
+  },
+  "additionalProperties": false
+}
